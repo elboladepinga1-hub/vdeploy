@@ -406,8 +406,8 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     const dayEvents = eventsByDay.get(key) || [];
     if (dayEvents.length === 0) {
       const formatted = formatDateKey(date);
-      try { setAddForm(prev => ({ ...prev, eventDate: formatted })); } catch (e) { setAddForm({ ...addForm, eventDate: formatted }); }
-      try { setContactForm(prev => ({ ...prev, eventDate: formatted })); } catch (e) { setContactForm({ ...contactForm, eventDate: formatted }); }
+      contractCRUD.setAddForm({ ...contractCRUD.addForm, eventDate: formatted });
+      contractCRUD.setContactForm({ ...contractCRUD.contactForm, eventDate: formatted });
       setAdding(true);
     } else {
       setExpandedDay(key);
