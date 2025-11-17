@@ -1167,33 +1167,6 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
       )}
 
 
-      {showAddContactModal && (
-        <div className={`fixed inset-0 z-[53] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-black/50'}`} onClick={() => setShowAddContactModal(false)}>
-          <div className={`rounded-xl w-full max-w-md p-6 transition-colors ${darkMode ? 'bg-black border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-lg font-bold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{editingContactIds && editingContactIds.contactId ? 'Editar Contacto' : 'Crear Contacto'}</h3>
-              <button onClick={() => setShowAddContactModal(false)} className={`p-1 rounded transition-colors ${darkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}>✕</button>
-            </div>
-            <div className="grid grid-cols-1 gap-3">
-              <input type="text" placeholder="Nombre" value={contactForm.name} onChange={(e)=> setContactForm({...contactForm, name: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-              <input type="tel" placeholder="Teléfono" value={contactForm.phone} onChange={(e)=> setContactForm({...contactForm, phone: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-              <div className="grid grid-cols-2 gap-2">
-                <input type="date" value={contactForm.eventDate || ''} onChange={(e)=> setContactForm({...contactForm, eventDate: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}/>
-                <input type="time" value={contactForm.eventTime || ''} onChange={(e)=> setContactForm({...contactForm, eventTime: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}/>
-              </div>
-              <select value={contactForm.packageId || ''} onChange={(e)=> setContactForm({...contactForm, packageId: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}>
-                <option value="">Paquete de interés</option>
-                {packages.map(pkg => (<option key={pkg.id} value={pkg.id}>{pkg.title}</option>))}
-              </select>
-              <textarea placeholder="Observaciones" value={contactForm.notes || ''} onChange={(e)=> setContactForm({...contactForm, notes: e.target.value})} className={`px-3 py-2 border rounded text-sm h-24 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-            </div>
-            <div className="flex gap-2 mt-4">
-              <button onClick={saveNewContact} disabled={contactSaving} className="flex-1 px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50" >{contactSaving ? 'Guardando...' : (editingContactIds && editingContactIds.contactId ? 'Guardar cambios' : 'Crear Contacto')}</button>
-              <button onClick={() => setShowAddContactModal(false)} className={`flex-1 px-4 py-2 border rounded ${darkMode ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'}`}>Cancelar</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showCouponModal && (
         <div className={`fixed inset-0 z-[60] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-black/50'}`} onClick={() => setShowCouponModal(false)}>
