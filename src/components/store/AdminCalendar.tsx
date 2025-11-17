@@ -1543,6 +1543,106 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
           </div>
         </div>
       )}
+
+      {/* Add Event Modal */}
+      <ContractFormModal
+        modalType="add-event"
+        isOpen={contractCRUD.showAddEventModal}
+        onClose={() => {
+          contractCRUD.setShowAddEventModal(false);
+          contractCRUD.setAddForm({
+            clientName: '',
+            clientEmail: '',
+            phone: '',
+            clientPhone: '',
+            clientCPF: '',
+            clientRG: '',
+            clientAddress: '',
+            eventType: '',
+            eventDate: '',
+            eventTime: '',
+            eventLocation: '',
+            packageId: '',
+            packageTitle: '',
+            travelFee: '',
+            totalAmount: '',
+            paymentMethod: 'pix',
+          });
+          contractCRUD.setAppliedCoupons([]);
+        }}
+        darkMode={darkMode}
+        packages={packages}
+        coupons={coupons}
+        appliedCoupons={contractCRUD.appliedCoupons}
+        setAppliedCoupons={contractCRUD.setAppliedCoupons}
+        formData={contractCRUD.addForm}
+        onFormDataChange={contractCRUD.setAddForm}
+        onSave={contractCRUD.saveNewEvent}
+      />
+
+      {/* Edit Event Modal */}
+      <ContractFormModal
+        modalType="edit-event"
+        isOpen={contractCRUD.editingEvent !== null && contractCRUD.editingEvent !== undefined}
+        onClose={() => {
+          contractCRUD.setEditingEvent(null);
+          contractCRUD.setEditForm({});
+          contractCRUD.setAppliedCoupons([]);
+        }}
+        darkMode={darkMode}
+        packages={packages}
+        coupons={coupons}
+        appliedCoupons={contractCRUD.appliedCoupons}
+        setAppliedCoupons={contractCRUD.setAppliedCoupons}
+        isEditMode={true}
+        editingEvent={contractCRUD.editingEvent || undefined}
+        formData={contractCRUD.editForm}
+        onFormDataChange={contractCRUD.setEditForm}
+        onSave={contractCRUD.saveEventChanges}
+      />
+
+      {/* Add Contact Modal */}
+      <ContractFormModal
+        modalType="add-contact"
+        isOpen={contractCRUD.showAddContactModal}
+        onClose={() => {
+          contractCRUD.setShowAddContactModal(false);
+          contractCRUD.setContactForm({
+            name: '',
+            email: '',
+            phone: '',
+            packageId: '',
+            notes: '',
+            eventDate: '',
+            eventTime: '',
+          });
+        }}
+        darkMode={darkMode}
+        packages={packages}
+        coupons={coupons}
+        appliedCoupons={contractCRUD.appliedCoupons}
+        setAppliedCoupons={contractCRUD.setAppliedCoupons}
+        editingContactId={contractCRUD.editingContactIds?.contactId}
+        contactSaving={contractCRUD.contactSaving}
+        contactForm={contractCRUD.contactForm}
+        onContactFormChange={contractCRUD.setContactForm}
+        onContactSave={contractCRUD.saveNewContact}
+      />
+
+      {/* Coupon Modal */}
+      <ContractFormModal
+        modalType="coupons"
+        isOpen={contractCRUD.showCouponModal}
+        onClose={() => contractCRUD.setShowCouponModal(false)}
+        darkMode={darkMode}
+        packages={packages}
+        coupons={coupons}
+        appliedCoupons={contractCRUD.appliedCoupons}
+        setAppliedCoupons={contractCRUD.setAppliedCoupons}
+        selectedEventTotalAmount={contractCRUD.editingEvent?.totalAmount || contractCRUD.addForm.totalAmount ? Number(contractCRUD.addForm.totalAmount) : selectedEvent?.totalAmount || 0}
+        calculateTotalWithDiscount={() => contractCRUD.editingEvent ? calculateTotalWithDiscount() : contractCRUD.computeTotalFromBase(Number(contractCRUD.addForm.totalAmount || 0))}
+        computeTotalFromBase={contractCRUD.computeTotalFromBase}
+      />
     </div>
   );
 };
