@@ -301,10 +301,11 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     loadPackagesAndCoupons();
   }, []);
 
+  // Discount calculation for selectedEvent (for displaying payment info)
   const calculateTotalWithDiscount = () => {
     if (!selectedEvent) return 0;
     let total = Number(selectedEvent.totalAmount || 0);
-    appliedCoupons.forEach(couponId => {
+    contractCRUD.appliedCoupons.forEach(couponId => {
       const coupon = coupons.find(c => c.id === couponId);
       if (coupon) {
         switch (coupon.discountType) {
@@ -332,31 +333,6 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     const total = calculateTotalWithDiscount();
     return total * 0.8;
   };
-
-  // Helpers to compute totals from a base amount (used for add modal)
-  const computeTotalFromBase = (baseAmount: number) => {
-    let total = Number(baseAmount || 0);
-    appliedCoupons.forEach(couponId => {
-      const coupon = coupons.find(c => c.id === couponId);
-      if (coupon) {
-        switch (coupon.discountType) {
-          case 'percentage':
-            total -= total * ((coupon.discountValue || 0) / 100);
-            break;
-          case 'fixed':
-            total -= (coupon.discountValue || 0);
-            break;
-          case 'full':
-            total = 0;
-            break;
-        }
-      }
-    });
-    return Math.max(0, total);
-  };
-
-  const computeDepositFromBase = (base: number) => computeTotalFromBase(base) * 0.2;
-  const computeRemainingFromBase = (base: number) => computeTotalFromBase(base) * 0.8;
 
   const searchResults = useMemo(() => {
     if (!filterPhone.trim()) return [];
