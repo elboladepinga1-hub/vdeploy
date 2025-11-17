@@ -1276,10 +1276,10 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                 </div>
               )}
             </div>
-            {!editingEvent && !isSelectedCalendarContact && (
+            {!contractCRUD.editingEvent && !isSelectedCalendarContact && (
               <div className="flex md:hidden gap-2 mb-4">
                 <button
-                  onClick={() => { setEditingEvent(selectedEvent); setEditForm({}); setAppliedCoupons([]); }}
+                  onClick={() => { contractCRUD.setEditingEvent(selectedEvent); contractCRUD.setEditForm({}); contractCRUD.setAppliedCoupons([]); }}
                   className="flex-1 p-2 bg-green-600 text-white rounded transition-colors hover:bg-green-700 flex items-center justify-center"
                   title="Editar evento"
                 >
