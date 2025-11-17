@@ -10,6 +10,8 @@ import { WorkflowStatusButtons } from './WorkflowStatusButtons';
 import { fetchPackages, DBPackage } from '../../utils/packagesService';
 import { fetchCoupons, DBCoupon, isCouponActiveNow } from '../../utils/couponsService';
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useContractCRUD } from '../../hooks/useContractCRUD';
+import ContractFormModal from '../modals/ContractFormModal';
 
 interface ContractItem {
   id: string;
