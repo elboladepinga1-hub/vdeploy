@@ -136,7 +136,6 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
   const [filterPhone, setFilterPhone] = useState<string>('');
   const [selected, setSelected] = useState<ContractItem | null>(null);
   const [adding, setAdding] = useState(false);
-  const [addForm, setAddForm] = useState<any>({ clientName: '', clientEmail: '', phone: '', clientPhone: '', clientCPF: '', clientRG: '', clientAddress: '', eventType: '', eventDate: '', eventTime: '', eventLocation: '', packageId: '', packageTitle: '', travelFee: '', totalAmount: '', paymentMethod: 'pix' });
   const [dressOptions, setDressOptions] = useState<{ id: string; name: string; image: string; color?: string }[]>([]);
   const [imageModal, setImageModal] = useState<{ open: boolean; src?: string; alt?: string }>({ open: false });
 
@@ -168,22 +167,11 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
   const [statusFilter, setStatusFilter] = useState<'deposit_pending' | 'editing' | 'completed' | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [deleteConfirmEvent, setDeleteConfirmEvent] = useState<ContractItem | null>(null);
-  const [editingEvent, setEditingEvent] = useState<ContractItem | null>(null);
-  const [editForm, setEditForm] = useState<any>({});
   const [isDeleting, setIsDeleting] = useState(false);
   const [showRevenue, setShowRevenue] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [packages, setPackages] = useState<DBPackage[]>([]);
   const [coupons, setCoupons] = useState<DBCoupon[]>([]);
-  const [appliedCoupons, setAppliedCoupons] = useState<string[]>([]);
-  const [showCouponModal, setShowCouponModal] = useState(false);
-
-  // Add / Create flow states
-  const [showAddEventModal, setShowAddEventModal] = useState(false);
-  const [showAddContactModal, setShowAddContactModal] = useState(false);
-  const [contactForm, setContactForm] = useState<{ name: string; email?: string; phone: string; packageId?: string; notes?: string; eventDate?: string; eventTime?: string }>({ name: '', email: '', phone: '', packageId: '', notes: '', eventDate: '', eventTime: '' });
-  const [editingContactIds, setEditingContactIds] = useState<{ contactId?: string; calendarEventId?: string } | null>(null);
-  const [contactSaving, setContactSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
