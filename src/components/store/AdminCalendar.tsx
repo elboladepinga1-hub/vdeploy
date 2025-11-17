@@ -1166,59 +1166,6 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
         </div>
       )}
 
-      {showAddEventModal && (
-        <div className={`fixed inset-0 z-[53] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-black/50'}`} onClick={() => setShowAddEventModal(false)}>
-          <div className={`rounded-xl w-full max-w-2xl p-6 overflow-y-auto max-h-[80vh] transition-colors ${darkMode ? 'bg-black border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-lg font-bold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>Crear Evento</h3>
-              <button onClick={() => setShowAddEventModal(false)} className={`p-1 rounded transition-colors ${darkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}>✕</button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <input type="text" placeholder="Nombre" value={addForm.clientName} onChange={(e) => setAddForm({...addForm, clientName: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-              <input type="email" placeholder="Email" value={addForm.clientEmail} onChange={(e) => setAddForm({...addForm, clientEmail: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-              <input type="tel" placeholder="Teléfono" value={addForm.phone || ''} onChange={(e) => setAddForm({...addForm, phone: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-
-              <input
-                type="text"
-                placeholder="CPF"
-                value={addForm.clientCPF || ''}
-                onChange={(e) => setAddForm({...addForm, clientCPF: e.target.value})}
-                className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
-              />
-              <input
-                type="text"
-                placeholder="RG"
-                value={addForm.clientRG || ''}
-                onChange={(e) => setAddForm({...addForm, clientRG: e.target.value})}
-                className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
-              />
-              <input
-                type="text"
-                placeholder="Dirección"
-                value={addForm.clientAddress || ''}
-                onChange={(e) => setAddForm({...addForm, clientAddress: e.target.value})}
-                className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
-              />
-
-              <input type="text" placeholder="Tipo de evento" value={addForm.eventType} onChange={(e) => setAddForm({...addForm, eventType: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-              <input type="date" value={addForm.eventDate} onChange={(e) => setAddForm({...addForm, eventDate: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-              <input type="time" value={addForm.eventTime} onChange={(e) => setAddForm({...addForm, eventTime: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-              <input type="text" placeholder="Ubicación" value={addForm.eventLocation} onChange={(e) => setAddForm({...addForm, eventLocation: e.target.value})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-              <select value={addForm.packageId || ''} onChange={(e) => { const pkg = packages.find(p=>p.id===e.target.value); setAddForm({...addForm, packageId: e.target.value, packageTitle: pkg?.title, totalAmount: pkg?.price || addForm.totalAmount}); }} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}>
-                <option value="">Seleccionar paquete</option>
-                {packages.map(pkg => (<option key={pkg.id} value={pkg.id}>{pkg.title} - R$ {pkg.price}</option>))}
-              </select>
-              <input type="number" placeholder="Deslocamiento" value={addForm.travelFee || ''} onChange={(e) => setAddForm({...addForm, travelFee: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-              <input type="text" placeholder="Método de pago" value={addForm.paymentMethod || 'pix'} onChange={(e) => setAddForm({...addForm, paymentMethod: e.target.value})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-            </div>
-            <div className="flex gap-2 mt-3">
-              <button onClick={() => setShowCouponModal(true)} className="flex-1 px-4 py-2 bg-amber-600 text-white rounded">Aplicar Cupones ({appliedCoupons.length})</button>
-              <button onClick={saveNewEvent} className="flex-1 px-4 py-2 bg-green-600 text-white rounded">Crear Evento</button>
-              <button onClick={() => { setShowAddEventModal(false); setAddForm({ clientName: '', clientEmail: '', phone: '', clientPhone: '', clientCPF: '', clientRG: '', clientAddress: '', eventType: '', eventDate: '', eventTime: '', eventLocation: '', packageId: '', packageTitle: '', travelFee: '', totalAmount: '', paymentMethod: 'pix' }); setAppliedCoupons([]); }} className={`flex-1 px-4 py-2 border rounded ${darkMode ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'}`}>Cancelar</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showAddContactModal && (
         <div className={`fixed inset-0 z-[53] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-black/50'}`} onClick={() => setShowAddContactModal(false)}>
@@ -1423,7 +1370,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
               <div>{selectedEvent.clientName ? <><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Nombre:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.clientName}</span></> : null}</div>
               {selectedEmail ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Email:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEmail}</span></div>) : null}
               {selectedPhone ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Teléfono:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedPhone}</span></div>) : null}
-              {(selectedEvent as any).packageTitle ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Paquete de inter��s:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).packageTitle}</span></div>) : null}
+              {(selectedEvent as any).packageTitle ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Paquete de interés:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).packageTitle}</span></div>) : null}
               {(selectedEvent as any).notes ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Observaciones:</span> <div className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).notes}</div></div>) : null}
               {selectedEvent.eventDate ? (<div className="grid grid-cols-2 gap-2"><div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Fecha:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.eventDate}</span></div><div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Hora:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.eventTime || '-'}</span></div></div>) : null}
 
