@@ -1182,8 +1182,8 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                   // prepare contact form for editing
                   const calId = String(selectedEvent.id || '').startsWith('cal_') ? String(selectedEvent.id).replace(/^cal_/, '') : undefined;
                   const contactId = (selectedEvent as any).contactRef || undefined;
-                  setEditingContactIds({ contactId, calendarEventId: calId });
-                  setContactForm({
+                  contractCRUD.setEditingContactIds({ contactId, calendarEventId: calId });
+                  contractCRUD.setContactForm({
                     name: selectedEvent.clientName || '',
                     email: selectedEvent.clientEmail || (selectedEvent as any).email || '',
                     phone: selectedEvent.phone || (selectedEvent as any).phone || '',
@@ -1192,7 +1192,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                     eventDate: selectedEvent.eventDate || '',
                     eventTime: selectedEvent.eventTime || ''
                   });
-                  setShowAddContactModal(true);
+                  contractCRUD.setShowAddContactModal(true);
                   setSelectedEvent(null);
                 }} className="px-3 py-1 rounded bg-yellow-500 text-white text-sm">Editar</button>
                 <button onClick={() => setSelectedEvent(null)} className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</button>
