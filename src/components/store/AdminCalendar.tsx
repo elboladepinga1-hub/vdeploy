@@ -1295,41 +1295,41 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
               </div>
             )}
 
-            {editingEvent && !isSelectedCalendarContact && (
+            {contractCRUD.editingEvent && !isSelectedCalendarContact && (
               <div className={`p-4 rounded-lg border mb-4 ${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
                 <h3 className={`font-semibold mb-3 ${darkMode ? 'text-white' : 'text-black'}`}>Editar Evento</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <input type="text" placeholder="Nombre" value={(editForm.clientName ?? editingEvent.clientName ?? '') as any} onChange={(e) => setEditForm({...editForm, clientName: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-                  <input type="email" placeholder="Email" value={(editForm.clientEmail ?? editingEvent.clientEmail ?? '') as any} onChange={(e) => setEditForm({...editForm, clientEmail: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-                  <input type="tel" placeholder="Teléfono" value={(editForm.phone ?? editingEvent.phone ?? '') as any} onChange={(e) => setEditForm({...editForm, phone: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="text" placeholder="Nombre" value={(contractCRUD.editForm.clientName ?? contractCRUD.editingEvent.clientName ?? '') as any} onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, clientName: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="email" placeholder="Email" value={(contractCRUD.editForm.clientEmail ?? contractCRUD.editingEvent.clientEmail ?? '') as any} onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, clientEmail: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="tel" placeholder="Teléfono" value={(contractCRUD.editForm.phone ?? contractCRUD.editingEvent.phone ?? '') as any} onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, phone: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
 
                   <input
                     type="text"
                     placeholder="CPF"
-                    value={(editForm.clientCPF ?? editingEvent.clientCPF ?? '') as any}
-                    onChange={(e) => setEditForm({...editForm, clientCPF: e.target.value})}
+                    value={(contractCRUD.editForm.clientCPF ?? contractCRUD.editingEvent.clientCPF ?? '') as any}
+                    onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, clientCPF: e.target.value})}
                     className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
                   />
                   <input
                     type="text"
                     placeholder="RG"
-                    value={(editForm.clientRG ?? editingEvent.clientRG ?? '') as any}
-                    onChange={(e) => setEditForm({...editForm, clientRG: e.target.value})}
+                    value={(contractCRUD.editForm.clientRG ?? contractCRUD.editingEvent.clientRG ?? '') as any}
+                    onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, clientRG: e.target.value})}
                     className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
                   />
                   <input
                     type="text"
                     placeholder="Dirección"
-                    value={(editForm.clientAddress ?? editingEvent.clientAddress ?? '') as any}
-                    onChange={(e) => setEditForm({...editForm, clientAddress: e.target.value})}
+                    value={(contractCRUD.editForm.clientAddress ?? contractCRUD.editingEvent.clientAddress ?? '') as any}
+                    onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, clientAddress: e.target.value})}
                     className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
                   />
 
-                  <input type="text" placeholder="Tipo de evento" value={(editForm.eventType ?? editingEvent.eventType ?? '') as any} onChange={(e) => setEditForm({...editForm, eventType: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-                  <input type="date" placeholder="Fecha evento" value={(editForm.eventDate ?? editingEvent.eventDate ?? '') as any} onChange={(e) => setEditForm({...editForm, eventDate: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-                  <input type="time" placeholder="Hora" value={(editForm.eventTime ?? editingEvent.eventTime ?? '') as any} onChange={(e) => setEditForm({...editForm, eventTime: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-                  <input type="text" placeholder="Ubicación" value={(editForm.eventLocation ?? editingEvent.eventLocation ?? '') as any} onChange={(e) => setEditForm({...editForm, eventLocation: e.target.value})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-                  <select value={(editForm.packageTitle ?? editingEvent.packageTitle ?? '') as any} onChange={(e) => setEditForm({...editForm, packageTitle: e.target.value, totalAmount: packages.find(p => p.title === e.target.value)?.price || editForm.totalAmount})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}>
+                  <input type="text" placeholder="Tipo de evento" value={(contractCRUD.editForm.eventType ?? contractCRUD.editingEvent.eventType ?? '') as any} onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, eventType: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="date" placeholder="Fecha evento" value={(contractCRUD.editForm.eventDate ?? contractCRUD.editingEvent.eventDate ?? '') as any} onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, eventDate: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="time" placeholder="Hora" value={(contractCRUD.editForm.eventTime ?? contractCRUD.editingEvent.eventTime ?? '') as any} onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, eventTime: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="text" placeholder="Ubicación" value={(contractCRUD.editForm.eventLocation ?? contractCRUD.editingEvent.eventLocation ?? '') as any} onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, eventLocation: e.target.value})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <select value={(contractCRUD.editForm.packageTitle ?? contractCRUD.editingEvent.packageTitle ?? '') as any} onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, packageTitle: e.target.value, totalAmount: packages.find(p => p.title === e.target.value)?.price || contractCRUD.editForm.totalAmount})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}>
                     <option value="">Seleccionar paquete</option>
                     {packages.map(pkg => (
                       <option key={pkg.id} value={pkg.title}>
@@ -1337,18 +1337,18 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                       </option>
                     ))}
                   </select>
-                  <input type="number" placeholder="Monto total" value={(editForm.totalAmount ?? editingEvent.totalAmount ?? '') as any} onChange={(e) => setEditForm({...editForm, totalAmount: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-                  <input type="number" placeholder="Deslocamiento" value={(editForm.travelFee ?? editingEvent.travelFee ?? '') as any} onChange={(e) => setEditForm({...editForm, travelFee: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-                  <input type="text" placeholder="Método de pago" value={(editForm.paymentMethod ?? editingEvent.paymentMethod ?? '') as any} onChange={(e) => setEditForm({...editForm, paymentMethod: e.target.value})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="number" placeholder="Monto total" value={(contractCRUD.editForm.totalAmount ?? contractCRUD.editingEvent.totalAmount ?? '') as any} onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, totalAmount: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="number" placeholder="Deslocamiento" value={(contractCRUD.editForm.travelFee ?? contractCRUD.editingEvent.travelFee ?? '') as any} onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, travelFee: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="text" placeholder="Método de pago" value={(contractCRUD.editForm.paymentMethod ?? contractCRUD.editingEvent.paymentMethod ?? '') as any} onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, paymentMethod: e.target.value})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
                 </div>
                 <div className="flex gap-2 mt-3 flex-col">
-                  <button onClick={() => setShowCouponModal(true)} className="flex-1 px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+                  <button onClick={() => contractCRUD.setShowCouponModal(true)} className="flex-1 px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors text-sm font-medium flex items-center justify-center gap-2">
                     <Percent size={16} />
-                    Aplicar Cupones ({appliedCoupons.length})
+                    Aplicar Cupones ({contractCRUD.appliedCoupons.length})
                   </button>
                   <div className="flex gap-2">
-                    <button onClick={saveEventChanges} className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm font-medium">Guardar</button>
-                    <button onClick={() => { setEditingEvent(null); setEditForm({}); setAppliedCoupons([]); }} className={`flex-1 px-4 py-2 border rounded text-sm font-medium transition-colors ${darkMode ? 'border-gray-600 text-gray-400 hover:bg-gray-800' : 'border-gray-300 text-gray-600 hover:bg-gray-100'}`}>Cancelar</button>
+                    <button onClick={contractCRUD.saveEventChanges} className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm font-medium">Guardar</button>
+                    <button onClick={() => { contractCRUD.setEditingEvent(null); contractCRUD.setEditForm({}); contractCRUD.setAppliedCoupons([]); }} className={`flex-1 px-4 py-2 border rounded text-sm font-medium transition-colors ${darkMode ? 'border-gray-600 text-gray-400 hover:bg-gray-800' : 'border-gray-300 text-gray-600 hover:bg-gray-100'}`}>Cancelar</button>
                   </div>
                 </div>
               </div>
