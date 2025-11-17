@@ -1231,7 +1231,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                   </div>
                   <div className="flex flex-col md:flex-row items-center gap-2">
                     <button
-                      onClick={() => { setEditingEvent(selectedEvent); setEditForm({}); setAppliedCoupons([]); }}
+                      onClick={() => { contractCRUD.setEditingEvent(selectedEvent); contractCRUD.setEditForm({}); contractCRUD.setAppliedCoupons([]); }}
                       className="hidden md:flex px-4 py-2 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700 transition-colors items-center gap-2"
                       title="Editar evento"
                     >
