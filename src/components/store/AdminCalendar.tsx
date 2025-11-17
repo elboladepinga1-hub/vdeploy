@@ -1156,8 +1156,8 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
             <h3 className={`text-lg font-bold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>Crear</h3>
             <p className={`text-sm mt-2 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Selecciona el tipo de elemento a crear</p>
             <div className="mt-4 flex gap-2">
-              <button onClick={() => { setShowAddEventModal(true); setAdding(false); }} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded">Evento</button>
-              <button onClick={() => { setShowAddContactModal(true); setAdding(false); }} className="flex-1 px-4 py-2 bg-green-600 text-white rounded">Contacto Cliente</button>
+              <button onClick={() => { contractCRUD.setShowAddEventModal(true); setAdding(false); }} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded">Evento</button>
+              <button onClick={() => { contractCRUD.setShowAddContactModal(true); setAdding(false); }} className="flex-1 px-4 py-2 bg-green-600 text-white rounded">Contacto Cliente</button>
             </div>
             <div className="mt-4">
               <button onClick={() => setAdding(false)} className="w-full px-4 py-2 border rounded">Cancelar</button>
@@ -1423,7 +1423,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
               <div>{selectedEvent.clientName ? <><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Nombre:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.clientName}</span></> : null}</div>
               {selectedEmail ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Email:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEmail}</span></div>) : null}
               {selectedPhone ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Teléfono:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedPhone}</span></div>) : null}
-              {(selectedEvent as any).packageTitle ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Paquete de interés:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).packageTitle}</span></div>) : null}
+              {(selectedEvent as any).packageTitle ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Paquete de inter��s:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).packageTitle}</span></div>) : null}
               {(selectedEvent as any).notes ? (<div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Observaciones:</span> <div className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{(selectedEvent as any).notes}</div></div>) : null}
               {selectedEvent.eventDate ? (<div className="grid grid-cols-2 gap-2"><div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Fecha:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.eventDate}</span></div><div><span className={`transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Hora:</span> <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{selectedEvent.eventTime || '-'}</span></div></div>) : null}
 
