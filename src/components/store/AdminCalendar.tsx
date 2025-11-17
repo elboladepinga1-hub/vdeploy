@@ -255,6 +255,9 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     }
   };
 
+  // Use the contract CRUD hook
+  const contractCRUD = useContractCRUD(packages, coupons, events, load);
+
   useEffect(() => {
     load();
   }, []);
