@@ -10,6 +10,8 @@ import { WorkflowStatusButtons } from './WorkflowStatusButtons';
 import { fetchPackages, DBPackage } from '../../utils/packagesService';
 import { fetchCoupons, DBCoupon, isCouponActiveNow } from '../../utils/couponsService';
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useContractCRUD } from '../../hooks/useContractCRUD';
+import ContractFormModal from '../modals/ContractFormModal';
 
 interface ContractItem {
   id: string;
@@ -134,7 +136,6 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
   const [filterPhone, setFilterPhone] = useState<string>('');
   const [selected, setSelected] = useState<ContractItem | null>(null);
   const [adding, setAdding] = useState(false);
-  const [addForm, setAddForm] = useState<any>({ clientName: '', clientEmail: '', phone: '', clientPhone: '', clientCPF: '', clientRG: '', clientAddress: '', eventType: '', eventDate: '', eventTime: '', eventLocation: '', packageId: '', packageTitle: '', travelFee: '', totalAmount: '', paymentMethod: 'pix' });
   const [dressOptions, setDressOptions] = useState<{ id: string; name: string; image: string; color?: string }[]>([]);
   const [imageModal, setImageModal] = useState<{ open: boolean; src?: string; alt?: string }>({ open: false });
 
@@ -166,22 +167,11 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
   const [statusFilter, setStatusFilter] = useState<'deposit_pending' | 'editing' | 'completed' | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [deleteConfirmEvent, setDeleteConfirmEvent] = useState<ContractItem | null>(null);
-  const [editingEvent, setEditingEvent] = useState<ContractItem | null>(null);
-  const [editForm, setEditForm] = useState<any>({});
   const [isDeleting, setIsDeleting] = useState(false);
   const [showRevenue, setShowRevenue] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [packages, setPackages] = useState<DBPackage[]>([]);
   const [coupons, setCoupons] = useState<DBCoupon[]>([]);
-  const [appliedCoupons, setAppliedCoupons] = useState<string[]>([]);
-  const [showCouponModal, setShowCouponModal] = useState(false);
-
-  // Add / Create flow states
-  const [showAddEventModal, setShowAddEventModal] = useState(false);
-  const [showAddContactModal, setShowAddContactModal] = useState(false);
-  const [contactForm, setContactForm] = useState<{ name: string; email?: string; phone: string; packageId?: string; notes?: string; eventDate?: string; eventTime?: string }>({ name: '', email: '', phone: '', packageId: '', notes: '', eventDate: '', eventTime: '' });
-  const [editingContactIds, setEditingContactIds] = useState<{ contactId?: string; calendarEventId?: string } | null>(null);
-  const [contactSaving, setContactSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -265,6 +255,9 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     }
   };
 
+  // Use the contract CRUD hook
+  const contractCRUD = useContractCRUD(packages, coupons, events, load);
+
   useEffect(() => {
     load();
   }, []);
@@ -308,10 +301,11 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     loadPackagesAndCoupons();
   }, []);
 
+  // Discount calculation for selectedEvent (for displaying payment info)
   const calculateTotalWithDiscount = () => {
     if (!selectedEvent) return 0;
     let total = Number(selectedEvent.totalAmount || 0);
-    appliedCoupons.forEach(couponId => {
+    contractCRUD.appliedCoupons.forEach(couponId => {
       const coupon = coupons.find(c => c.id === couponId);
       if (coupon) {
         switch (coupon.discountType) {
@@ -339,31 +333,6 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     const total = calculateTotalWithDiscount();
     return total * 0.8;
   };
-
-  // Helpers to compute totals from a base amount (used for add modal)
-  const computeTotalFromBase = (baseAmount: number) => {
-    let total = Number(baseAmount || 0);
-    appliedCoupons.forEach(couponId => {
-      const coupon = coupons.find(c => c.id === couponId);
-      if (coupon) {
-        switch (coupon.discountType) {
-          case 'percentage':
-            total -= total * ((coupon.discountValue || 0) / 100);
-            break;
-          case 'fixed':
-            total -= (coupon.discountValue || 0);
-            break;
-          case 'full':
-            total = 0;
-            break;
-        }
-      }
-    });
-    return Math.max(0, total);
-  };
-
-  const computeDepositFromBase = (base: number) => computeTotalFromBase(base) * 0.2;
-  const computeRemainingFromBase = (base: number) => computeTotalFromBase(base) * 0.8;
 
   const searchResults = useMemo(() => {
     if (!filterPhone.trim()) return [];
@@ -437,8 +406,8 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     const dayEvents = eventsByDay.get(key) || [];
     if (dayEvents.length === 0) {
       const formatted = formatDateKey(date);
-      try { setAddForm(prev => ({ ...prev, eventDate: formatted })); } catch (e) { setAddForm({ ...addForm, eventDate: formatted }); }
-      try { setContactForm(prev => ({ ...prev, eventDate: formatted })); } catch (e) { setContactForm({ ...contactForm, eventDate: formatted }); }
+      contractCRUD.setAddForm({ ...contractCRUD.addForm, eventDate: formatted });
+      contractCRUD.setContactForm({ ...contractCRUD.contactForm, eventDate: formatted });
       setAdding(true);
     } else {
       setExpandedDay(key);
@@ -671,216 +640,6 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
     }
   };
 
-  const saveEventChanges = async () => {
-    if (!editingEvent) return;
-
-    try {
-      const baseId = String(editingEvent.id || '').split('__')[0] || editingEvent.id;
-      const updates = {
-        clientName: (editForm.clientName ?? editingEvent.clientName ?? '') as any,
-        clientEmail: (editForm.clientEmail ?? editingEvent.clientEmail ?? '') as any,
-        clientPhone: (editForm.phone ?? editForm.clientPhone ?? editingEvent.clientPhone ?? editingEvent.phone ?? '') as any,
-        phone: (editForm.phone ?? editForm.clientPhone ?? editingEvent.phone ?? '') as any,
-        clientCPF: (editForm.clientCPF ?? editingEvent.clientCPF ?? '') as any,
-        clientRG: (editForm.clientRG ?? editingEvent.clientRG ?? '') as any,
-        clientAddress: (editForm.clientAddress ?? editingEvent.clientAddress ?? '') as any,
-        eventType: (editForm.eventType ?? editingEvent.eventType ?? '') as any,
-        eventDate: (editForm.eventDate ?? editingEvent.eventDate ?? '') as any,
-        eventTime: (editForm.eventTime ?? editingEvent.eventTime ?? '') as any,
-        eventLocation: (editForm.eventLocation ?? editingEvent.eventLocation ?? '') as any,
-        totalAmount: editForm.totalAmount ? Number(editForm.totalAmount) : (editingEvent.totalAmount ?? 0),
-        travelFee: editForm.travelFee ? Number(editForm.travelFee) : (editingEvent.travelFee ?? 0),
-        paymentMethod: (editForm.paymentMethod ?? editingEvent.paymentMethod ?? 'pix') as any,
-        packageTitle: (editForm.packageTitle ?? editingEvent.packageTitle ?? '') as any,
-        formSnapshot: {
-          ...(editingEvent.formSnapshot || {}),
-          phone: (editForm.phone ?? editForm.clientPhone ?? editingEvent.phone ?? (editingEvent.formSnapshot?.phone ?? '') ?? '') as any,
-          clientPhone: (editForm.phone ?? editForm.clientPhone ?? editingEvent.clientPhone ?? (editingEvent.formSnapshot?.clientPhone ?? '') ?? '') as any,
-          clientCPF: (editForm.clientCPF ?? editingEvent.clientCPF ?? (editingEvent.formSnapshot?.clientCPF ?? '') ?? '') as any,
-          clientRG: (editForm.clientRG ?? editingEvent.clientRG ?? (editingEvent.formSnapshot?.clientRG ?? '') ?? '') as any,
-          clientAddress: (editForm.clientAddress ?? editingEvent.clientAddress ?? (editingEvent.formSnapshot?.clientAddress ?? '') ?? '') as any,
-        }
-      };
-
-      await updateDoc(doc(db, 'contracts', baseId), updates);
-
-      const updated = { ...editingEvent, ...updates };
-      setEvents(prev => prev.map(e => e.id === editingEvent.id ? updated : e));
-      setSelectedEvent(updated);
-      setEditingEvent(null);
-      setEditForm({});
-      setAppliedCoupons([]);
-
-      window.dispatchEvent(new CustomEvent('contractsUpdated'));
-      window.dispatchEvent(new CustomEvent('adminToast', {
-        detail: { message: 'Evento actualizado correctamente', type: 'success' }
-      }));
-    } catch (e) {
-      console.error('Error updating event:', e);
-      window.dispatchEvent(new CustomEvent('adminToast', {
-        detail: { message: 'Error al actualizar el evento', type: 'error' }
-      }));
-    }
-  };
-
-  // Save a newly created event (contract) from the add-event modal
-  const saveNewEvent = async () => {
-    try {
-      // determine package price
-      let baseAmount = Number(addForm.totalAmount || 0);
-      if (addForm.packageId) {
-        const pkg = packages.find(p => p.id === addForm.packageId);
-        if (pkg) baseAmount = Number(pkg.price || baseAmount);
-      }
-
-      const totalWithDiscount = computeTotalFromBase(baseAmount);
-
-      const norm = normalizeDateTime(addForm.eventDate || '');
-      const payload: any = {
-        clientName: addForm.clientName || 'Sin nombre',
-        clientEmail: addForm.clientEmail || '',
-        clientPhone: addForm.phone || addForm.clientPhone || '',
-        phone: addForm.phone || addForm.clientPhone || '',
-        clientCPF: addForm.clientCPF || '',
-        clientRG: addForm.clientRG || '',
-        clientAddress: addForm.clientAddress || '',
-        eventType: addForm.eventType || 'Evento',
-        eventDate: norm.date || (addForm.eventDate || ''),
-        eventTime: norm.time || (addForm.eventTime || '00:00'),
-        eventLocation: addForm.eventLocation || '',
-        paymentMethod: addForm.paymentMethod || 'pix',
-        depositPaid: false,
-        finalPaymentPaid: false,
-        eventCompleted: false,
-        isEditing: false,
-        createdAt: new Date().toISOString(),
-        totalAmount: Number(totalWithDiscount) || 0,
-        travelFee: Number(addForm.travelFee || 0) || 0,
-        status: 'booked' as const,
-        packageId: addForm.packageId || null,
-        packageTitle: addForm.packageTitle || '',
-        appliedCoupons: appliedCoupons.slice(),
-        formSnapshot: {
-          phone: addForm.phone || addForm.clientPhone || '',
-          clientPhone: addForm.phone || addForm.clientPhone || '',
-          clientCPF: addForm.clientCPF || '',
-          clientRG: addForm.clientRG || '',
-          clientAddress: addForm.clientAddress || '',
-        }
-      };
-
-      const ref = await addDoc(collection(db, 'contracts'), payload);
-
-      // reload events and reset states
-      await load();
-      setShowAddEventModal(false);
-      setAdding(false);
-      setAddForm({ clientName: '', clientEmail: '', phone: '', clientPhone: '', clientCPF: '', clientRG: '', clientAddress: '', eventType: '', eventDate: '', eventTime: '', eventLocation: '', packageId: '', packageTitle: '', travelFee: '', totalAmount: '', paymentMethod: 'pix' });
-      setAppliedCoupons([]);
-
-      window.dispatchEvent(new CustomEvent('contractsUpdated'));
-      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Evento creado correctamente', type: 'success' } }));
-    } catch (e) {
-      console.error('Error creating event:', e);
-      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Error al crear el evento', type: 'error' } }));
-    }
-  };
-
-  // Save a newly created contact
-  const saveNewContact = async () => {
-    if (contactSaving) return; // prevent duplicate submissions
-    setContactSaving(true);
-    try {
-      const payload = {
-        name: contactForm.name || 'Sin nombre',
-        email: contactForm.email || '',
-        phone: contactForm.phone || '',
-        packageId: contactForm.packageId || null,
-        notes: contactForm.notes || '',
-        createdAt: new Date().toISOString(),
-      };
-
-      // If editing an existing contact, update instead of creating
-      if (editingContactIds && editingContactIds.contactId) {
-        try {
-          await updateDoc(doc(db, 'contacts', editingContactIds.contactId), payload);
-        } catch (e) {
-          console.error('Error updating contact:', e);
-        }
-
-        // Update calendar event if exists
-        if (editingContactIds.calendarEventId) {
-          try {
-            const calPayload: any = {
-              name: contactForm.name || 'Contacto',
-              email: contactForm.email || '',
-              phone: contactForm.phone || '',
-              packageId: contactForm.packageId || null,
-              packageTitle: packages.find(p=>p.id===contactForm.packageId)?.title || '',
-              notes: contactForm.notes || '',
-              eventDate: contactForm.eventDate || '',
-              eventTime: contactForm.eventTime || '00:00',
-              eventLocation: '',
-              type: 'contact',
-              contactRef: editingContactIds.contactId,
-              createdAt: new Date().toISOString(),
-            };
-            await updateDoc(doc(db, 'calendar_events', editingContactIds.calendarEventId), calPayload);
-            await load();
-          } catch (e) {
-            console.error('Error updating calendar event for contact:', e);
-          }
-        }
-
-        setEditingContactIds(null);
-      } else {
-        const contactRef = await addDoc(collection(db, 'contacts'), payload);
-
-        // if a date/time was provided, create a calendar-only event (not a contract)
-        if (contactForm.eventDate) {
-          try {
-            // check if there's already a calendar event for this contact/date to avoid duplicates
-            const csnap = await getDocs(query(collection(db, 'calendar_events'), ));
-            const existing = csnap.docs.map(d => d.data()).some((d: any) => d.contactRef === contactRef.id && d.eventDate === contactForm.eventDate && d.eventTime === (contactForm.eventTime || '00:00'));
-            if (!existing) {
-              const calPayload: any = {
-                name: contactForm.name || 'Contacto',
-                email: contactForm.email || '',
-                phone: contactForm.phone || '',
-                packageId: contactForm.packageId || null,
-                packageTitle: packages.find(p=>p.id===contactForm.packageId)?.title || '',
-                notes: contactForm.notes || '',
-                eventDate: contactForm.eventDate,
-                eventTime: contactForm.eventTime || '00:00',
-                eventLocation: '',
-                type: 'contact',
-                contactRef: contactRef.id,
-                createdAt: new Date().toISOString(),
-              };
-              await addDoc(collection(db, 'calendar_events'), calPayload);
-              // reload events so the calendar shows the new calendar-only event
-              await load();
-            } else {
-              console.warn('Duplicate calendar event avoided');
-            }
-          } catch (e) {
-            console.error('Error creating calendar event for contact:', e);
-          }
-        }
-      }
-
-      setShowAddContactModal(false);
-      setContactForm({ name: '', email: '', phone: '', packageId: '', notes: '', eventDate: '', eventTime: '' });
-      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: editingContactIds ? 'Contacto actualizado correctamente' : 'Contacto creado correctamente', type: 'success' } }));
-      window.dispatchEvent(new CustomEvent('contactsUpdated'));
-      window.dispatchEvent(new CustomEvent('calendarUpdated'));
-    } catch (e) {
-      console.error('Error creating contact:', e);
-      window.dispatchEvent(new CustomEvent('adminToast', { detail: { message: 'Error al crear el contacto', type: 'error' } }));
-    } finally {
-      setContactSaving(false);
-    }
-  };
 
   const syncCalendarWithContracts = async () => {
     setSyncing(true);
@@ -1397,8 +1156,8 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
             <h3 className={`text-lg font-bold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>Crear</h3>
             <p className={`text-sm mt-2 transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Selecciona el tipo de elemento a crear</p>
             <div className="mt-4 flex gap-2">
-              <button onClick={() => { setShowAddEventModal(true); setAdding(false); }} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded">Evento</button>
-              <button onClick={() => { setShowAddContactModal(true); setAdding(false); }} className="flex-1 px-4 py-2 bg-green-600 text-white rounded">Contacto Cliente</button>
+              <button onClick={() => { contractCRUD.setShowAddEventModal(true); setAdding(false); }} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded">Evento</button>
+              <button onClick={() => { contractCRUD.setShowAddContactModal(true); setAdding(false); }} className="flex-1 px-4 py-2 bg-green-600 text-white rounded">Contacto Cliente</button>
             </div>
             <div className="mt-4">
               <button onClick={() => setAdding(false)} className="w-full px-4 py-2 border rounded">Cancelar</button>
@@ -1407,228 +1166,8 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
         </div>
       )}
 
-      {showAddEventModal && (
-        <div className={`fixed inset-0 z-[53] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-black/50'}`} onClick={() => setShowAddEventModal(false)}>
-          <div className={`rounded-xl w-full max-w-2xl p-6 overflow-y-auto max-h-[80vh] transition-colors ${darkMode ? 'bg-black border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-lg font-bold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>Crear Evento</h3>
-              <button onClick={() => setShowAddEventModal(false)} className={`p-1 rounded transition-colors ${darkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}>✕</button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <input type="text" placeholder="Nombre" value={addForm.clientName} onChange={(e) => setAddForm({...addForm, clientName: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-              <input type="email" placeholder="Email" value={addForm.clientEmail} onChange={(e) => setAddForm({...addForm, clientEmail: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-              <input type="tel" placeholder="Teléfono" value={addForm.phone || ''} onChange={(e) => setAddForm({...addForm, phone: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
 
-              <input
-                type="text"
-                placeholder="CPF"
-                value={addForm.clientCPF || ''}
-                onChange={(e) => setAddForm({...addForm, clientCPF: e.target.value})}
-                className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
-              />
-              <input
-                type="text"
-                placeholder="RG"
-                value={addForm.clientRG || ''}
-                onChange={(e) => setAddForm({...addForm, clientRG: e.target.value})}
-                className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
-              />
-              <input
-                type="text"
-                placeholder="Dirección"
-                value={addForm.clientAddress || ''}
-                onChange={(e) => setAddForm({...addForm, clientAddress: e.target.value})}
-                className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
-              />
 
-              <input type="text" placeholder="Tipo de evento" value={addForm.eventType} onChange={(e) => setAddForm({...addForm, eventType: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-              <input type="date" value={addForm.eventDate} onChange={(e) => setAddForm({...addForm, eventDate: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-              <input type="time" value={addForm.eventTime} onChange={(e) => setAddForm({...addForm, eventTime: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-              <input type="text" placeholder="Ubicación" value={addForm.eventLocation} onChange={(e) => setAddForm({...addForm, eventLocation: e.target.value})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-              <select value={addForm.packageId || ''} onChange={(e) => { const pkg = packages.find(p=>p.id===e.target.value); setAddForm({...addForm, packageId: e.target.value, packageTitle: pkg?.title, totalAmount: pkg?.price || addForm.totalAmount}); }} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}>
-                <option value="">Seleccionar paquete</option>
-                {packages.map(pkg => (<option key={pkg.id} value={pkg.id}>{pkg.title} - R$ {pkg.price}</option>))}
-              </select>
-              <input type="number" placeholder="Deslocamiento" value={addForm.travelFee || ''} onChange={(e) => setAddForm({...addForm, travelFee: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-              <input type="text" placeholder="Método de pago" value={addForm.paymentMethod || 'pix'} onChange={(e) => setAddForm({...addForm, paymentMethod: e.target.value})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-            </div>
-            <div className="flex gap-2 mt-3">
-              <button onClick={() => setShowCouponModal(true)} className="flex-1 px-4 py-2 bg-amber-600 text-white rounded">Aplicar Cupones ({appliedCoupons.length})</button>
-              <button onClick={saveNewEvent} className="flex-1 px-4 py-2 bg-green-600 text-white rounded">Crear Evento</button>
-              <button onClick={() => { setShowAddEventModal(false); setAddForm({ clientName: '', clientEmail: '', phone: '', clientPhone: '', clientCPF: '', clientRG: '', clientAddress: '', eventType: '', eventDate: '', eventTime: '', eventLocation: '', packageId: '', packageTitle: '', travelFee: '', totalAmount: '', paymentMethod: 'pix' }); setAppliedCoupons([]); }} className={`flex-1 px-4 py-2 border rounded ${darkMode ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'}`}>Cancelar</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showAddContactModal && (
-        <div className={`fixed inset-0 z-[53] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-black/50'}`} onClick={() => setShowAddContactModal(false)}>
-          <div className={`rounded-xl w-full max-w-md p-6 transition-colors ${darkMode ? 'bg-black border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-lg font-bold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>{editingContactIds && editingContactIds.contactId ? 'Editar Contacto' : 'Crear Contacto'}</h3>
-              <button onClick={() => setShowAddContactModal(false)} className={`p-1 rounded transition-colors ${darkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}>✕</button>
-            </div>
-            <div className="grid grid-cols-1 gap-3">
-              <input type="text" placeholder="Nombre" value={contactForm.name} onChange={(e)=> setContactForm({...contactForm, name: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-              <input type="tel" placeholder="Teléfono" value={contactForm.phone} onChange={(e)=> setContactForm({...contactForm, phone: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-              <div className="grid grid-cols-2 gap-2">
-                <input type="date" value={contactForm.eventDate || ''} onChange={(e)=> setContactForm({...contactForm, eventDate: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}/>
-                <input type="time" value={contactForm.eventTime || ''} onChange={(e)=> setContactForm({...contactForm, eventTime: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}/>
-              </div>
-              <select value={contactForm.packageId || ''} onChange={(e)=> setContactForm({...contactForm, packageId: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}>
-                <option value="">Paquete de interés</option>
-                {packages.map(pkg => (<option key={pkg.id} value={pkg.id}>{pkg.title}</option>))}
-              </select>
-              <textarea placeholder="Observaciones" value={contactForm.notes || ''} onChange={(e)=> setContactForm({...contactForm, notes: e.target.value})} className={`px-3 py-2 border rounded text-sm h-24 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-            </div>
-            <div className="flex gap-2 mt-4">
-              <button onClick={saveNewContact} disabled={contactSaving} className="flex-1 px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50" >{contactSaving ? 'Guardando...' : (editingContactIds && editingContactIds.contactId ? 'Guardar cambios' : 'Crear Contacto')}</button>
-              <button onClick={() => setShowAddContactModal(false)} className={`flex-1 px-4 py-2 border rounded ${darkMode ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'}`}>Cancelar</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showCouponModal && (
-        <div className={`fixed inset-0 z-[60] flex items-center justify-center p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-black/50'}`} onClick={() => setShowCouponModal(false)}>
-          <div className={`rounded-xl w-full max-w-2xl p-6 overflow-y-auto max-h-[80vh] transition-colors ${darkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-lg font-bold transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
-                Aplicar Cupones de Descuento
-              </h3>
-              <button onClick={() => setShowCouponModal(false)} className={`p-1 rounded transition-colors ${darkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}>
-                <X size={20} className={darkMode ? 'text-gray-400' : 'text-gray-600'} />
-              </button>
-            </div>
-
-            {coupons.length === 0 ? (
-              <p className={`text-sm transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                No hay cupones disponibles en este momento.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {coupons.map(coupon => {
-                  const isApplied = appliedCoupons.includes(coupon.id);
-                  const discountAmount = (() => {
-                    const baseAmount = Number(editingEvent?.totalAmount || selectedEvent?.totalAmount || addForm.totalAmount || 0);
-                    if (coupon.discountType === 'percentage') {
-                      return baseAmount * ((coupon.discountValue || 0) / 100);
-                    } else if (coupon.discountType === 'fixed') {
-                      return coupon.discountValue || 0;
-                    } else if (coupon.discountType === 'full') {
-                      return baseAmount;
-                    }
-                    return 0;
-                  })();
-
-                  return (
-                    <label key={coupon.id} className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                      isApplied
-                        ? darkMode
-                          ? 'bg-amber-900/20 border-amber-700'
-                          : 'bg-amber-50 border-amber-300'
-                        : darkMode
-                        ? 'bg-gray-800 border-gray-700 hover:bg-gray-700'
-                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                    }`}>
-                      <input
-                        type="checkbox"
-                        checked={isApplied}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setAppliedCoupons([...appliedCoupons, coupon.id]);
-                          } else {
-                            setAppliedCoupons(appliedCoupons.filter(id => id !== coupon.id));
-                          }
-                        }}
-                        className="mt-1 w-4 h-4 cursor-pointer flex-shrink-0"
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
-                              {coupon.code}
-                            </p>
-                            {coupon.description && (
-                              <p className={`text-sm transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                {coupon.description}
-                              </p>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <p className={`font-medium transition-colors ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>
-                              {coupon.discountType === 'percentage' && `${coupon.discountValue}%`}
-                              {coupon.discountType === 'fixed' && `R$ ${coupon.discountValue}`}
-                              {coupon.discountType === 'full' && '100%'}
-                            </p>
-                            <p className={`text-xs transition-colors ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                              Ahorro: R$ {discountAmount.toFixed(0)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </label>
-                  );
-                })}</div>
-            )}
-
-            <div className={`mt-6 p-4 rounded-lg border transition-colors ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Monto original:</span>
-                  <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>
-                    R$ {Number(editingEvent?.totalAmount || selectedEvent?.totalAmount || addForm.totalAmount || 0).toFixed(0)}
-                  </span>
-                </div>
-                {appliedCoupons.length > 0 && (
-                  <>
-                    <div className="flex justify-between">
-                      <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Descuento total:</span>
-                      <span className={`font-medium transition-colors ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>
-                        -R$ {(Number(editingEvent?.totalAmount || selectedEvent?.totalAmount || addForm.totalAmount || 0) - computeTotalFromBase(Number(editingEvent?.totalAmount || selectedEvent?.totalAmount || addForm.totalAmount || 0))).toFixed(0)}
-                      </span>
-                    </div>
-                    <div className="border-t border-gray-400/20 pt-2 flex justify-between">
-                      <span className={`font-medium transition-colors ${darkMode ? 'text-white' : 'text-black'}`}>Total con descuento:</span>
-                      <span className={`font-bold transition-colors ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
-                        R$ {(editingEvent || selectedEvent ? calculateTotalWithDiscount() : computeTotalFromBase(Number(addForm.totalAmount || 0))).toFixed(0)}
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="flex gap-2 mt-6">
-              <button
-                onClick={() => {
-                  setShowCouponModal(false);
-                }}
-                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
-                  darkMode
-                    ? 'bg-green-600 hover:bg-green-700 text-white'
-                    : 'bg-green-600 hover:bg-green-700 text-white'
-                }`}
-              >
-                Aceptar
-              </button>
-              <button
-                onClick={() => {
-                  setAppliedCoupons([]);
-                  setShowCouponModal(false);
-                }}
-                className={`flex-1 px-4 py-2 rounded-lg font-medium border transition-colors ${
-                  darkMode
-                    ? 'border-gray-700 text-gray-300 hover:bg-gray-800'
-                    : 'border-gray-300 text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                Limpiar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {selectedEvent && isSelectedCalendarContact && (
         <div className={`fixed inset-0 z-[51] flex items-center justify-center p-2 sm:p-4 transition-colors ${darkMode ? 'bg-black/70' : 'bg-white/70'}`} onClick={() => setSelectedEvent(null)}>
@@ -1643,8 +1182,8 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                   // prepare contact form for editing
                   const calId = String(selectedEvent.id || '').startsWith('cal_') ? String(selectedEvent.id).replace(/^cal_/, '') : undefined;
                   const contactId = (selectedEvent as any).contactRef || undefined;
-                  setEditingContactIds({ contactId, calendarEventId: calId });
-                  setContactForm({
+                  contractCRUD.setEditingContactIds({ contactId, calendarEventId: calId });
+                  contractCRUD.setContactForm({
                     name: selectedEvent.clientName || '',
                     email: selectedEvent.clientEmail || (selectedEvent as any).email || '',
                     phone: selectedEvent.phone || (selectedEvent as any).phone || '',
@@ -1653,7 +1192,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                     eventDate: selectedEvent.eventDate || '',
                     eventTime: selectedEvent.eventTime || ''
                   });
-                  setShowAddContactModal(true);
+                  contractCRUD.setShowAddContactModal(true);
                   setSelectedEvent(null);
                 }} className="px-3 py-1 rounded bg-yellow-500 text-white text-sm">Editar</button>
                 <button onClick={() => setSelectedEvent(null)} className={`text-2xl transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}>✕</button>
@@ -1692,7 +1231,7 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                   </div>
                   <div className="flex flex-col md:flex-row items-center gap-2">
                     <button
-                      onClick={() => { setEditingEvent(selectedEvent); setEditForm({}); setAppliedCoupons([]); }}
+                      onClick={() => { contractCRUD.setEditingEvent(selectedEvent); contractCRUD.setEditForm({}); contractCRUD.setAppliedCoupons([]); }}
                       className="hidden md:flex px-4 py-2 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700 transition-colors items-center gap-2"
                       title="Editar evento"
                     >
@@ -1737,10 +1276,10 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                 </div>
               )}
             </div>
-            {!editingEvent && !isSelectedCalendarContact && (
+            {!contractCRUD.editingEvent && !isSelectedCalendarContact && (
               <div className="flex md:hidden gap-2 mb-4">
                 <button
-                  onClick={() => { setEditingEvent(selectedEvent); setEditForm({}); setAppliedCoupons([]); }}
+                  onClick={() => { contractCRUD.setEditingEvent(selectedEvent); contractCRUD.setEditForm({}); contractCRUD.setAppliedCoupons([]); }}
                   className="flex-1 p-2 bg-green-600 text-white rounded transition-colors hover:bg-green-700 flex items-center justify-center"
                   title="Editar evento"
                 >
@@ -1756,41 +1295,41 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
               </div>
             )}
 
-            {editingEvent && !isSelectedCalendarContact && (
+            {contractCRUD.editingEvent && !isSelectedCalendarContact && (
               <div className={`p-4 rounded-lg border mb-4 ${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
                 <h3 className={`font-semibold mb-3 ${darkMode ? 'text-white' : 'text-black'}`}>Editar Evento</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <input type="text" placeholder="Nombre" value={(editForm.clientName ?? editingEvent.clientName ?? '') as any} onChange={(e) => setEditForm({...editForm, clientName: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-                  <input type="email" placeholder="Email" value={(editForm.clientEmail ?? editingEvent.clientEmail ?? '') as any} onChange={(e) => setEditForm({...editForm, clientEmail: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-                  <input type="tel" placeholder="Teléfono" value={(editForm.phone ?? editingEvent.phone ?? '') as any} onChange={(e) => setEditForm({...editForm, phone: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="text" placeholder="Nombre" value={(contractCRUD.editForm.clientName ?? contractCRUD.editingEvent.clientName ?? '') as any} onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, clientName: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="email" placeholder="Email" value={(contractCRUD.editForm.clientEmail ?? contractCRUD.editingEvent.clientEmail ?? '') as any} onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, clientEmail: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="tel" placeholder="Teléfono" value={(contractCRUD.editForm.phone ?? contractCRUD.editingEvent.phone ?? '') as any} onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, phone: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
 
                   <input
                     type="text"
                     placeholder="CPF"
-                    value={(editForm.clientCPF ?? editingEvent.clientCPF ?? '') as any}
-                    onChange={(e) => setEditForm({...editForm, clientCPF: e.target.value})}
+                    value={(contractCRUD.editForm.clientCPF ?? contractCRUD.editingEvent.clientCPF ?? '') as any}
+                    onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, clientCPF: e.target.value})}
                     className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
                   />
                   <input
                     type="text"
                     placeholder="RG"
-                    value={(editForm.clientRG ?? editingEvent.clientRG ?? '') as any}
-                    onChange={(e) => setEditForm({...editForm, clientRG: e.target.value})}
+                    value={(contractCRUD.editForm.clientRG ?? contractCRUD.editingEvent.clientRG ?? '') as any}
+                    onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, clientRG: e.target.value})}
                     className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
                   />
                   <input
                     type="text"
                     placeholder="Dirección"
-                    value={(editForm.clientAddress ?? editingEvent.clientAddress ?? '') as any}
-                    onChange={(e) => setEditForm({...editForm, clientAddress: e.target.value})}
+                    value={(contractCRUD.editForm.clientAddress ?? contractCRUD.editingEvent.clientAddress ?? '') as any}
+                    onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, clientAddress: e.target.value})}
                     className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
                   />
 
-                  <input type="text" placeholder="Tipo de evento" value={(editForm.eventType ?? editingEvent.eventType ?? '') as any} onChange={(e) => setEditForm({...editForm, eventType: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-                  <input type="date" placeholder="Fecha evento" value={(editForm.eventDate ?? editingEvent.eventDate ?? '') as any} onChange={(e) => setEditForm({...editForm, eventDate: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-                  <input type="time" placeholder="Hora" value={(editForm.eventTime ?? editingEvent.eventTime ?? '') as any} onChange={(e) => setEditForm({...editForm, eventTime: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-                  <input type="text" placeholder="Ubicación" value={(editForm.eventLocation ?? editingEvent.eventLocation ?? '') as any} onChange={(e) => setEditForm({...editForm, eventLocation: e.target.value})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-                  <select value={(editForm.packageTitle ?? editingEvent.packageTitle ?? '') as any} onChange={(e) => setEditForm({...editForm, packageTitle: e.target.value, totalAmount: packages.find(p => p.title === e.target.value)?.price || editForm.totalAmount})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}>
+                  <input type="text" placeholder="Tipo de evento" value={(contractCRUD.editForm.eventType ?? contractCRUD.editingEvent.eventType ?? '') as any} onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, eventType: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="date" placeholder="Fecha evento" value={(contractCRUD.editForm.eventDate ?? contractCRUD.editingEvent.eventDate ?? '') as any} onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, eventDate: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="time" placeholder="Hora" value={(contractCRUD.editForm.eventTime ?? contractCRUD.editingEvent.eventTime ?? '') as any} onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, eventTime: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="text" placeholder="Ubicación" value={(contractCRUD.editForm.eventLocation ?? contractCRUD.editingEvent.eventLocation ?? '') as any} onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, eventLocation: e.target.value})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <select value={(contractCRUD.editForm.packageTitle ?? contractCRUD.editingEvent.packageTitle ?? '') as any} onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, packageTitle: e.target.value, totalAmount: packages.find(p => p.title === e.target.value)?.price || contractCRUD.editForm.totalAmount})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`}>
                     <option value="">Seleccionar paquete</option>
                     {packages.map(pkg => (
                       <option key={pkg.id} value={pkg.title}>
@@ -1798,18 +1337,18 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
                       </option>
                     ))}
                   </select>
-                  <input type="number" placeholder="Monto total" value={(editForm.totalAmount ?? editingEvent.totalAmount ?? '') as any} onChange={(e) => setEditForm({...editForm, totalAmount: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-                  <input type="number" placeholder="Deslocamiento" value={(editForm.travelFee ?? editingEvent.travelFee ?? '') as any} onChange={(e) => setEditForm({...editForm, travelFee: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
-                  <input type="text" placeholder="Método de pago" value={(editForm.paymentMethod ?? editingEvent.paymentMethod ?? '') as any} onChange={(e) => setEditForm({...editForm, paymentMethod: e.target.value})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="number" placeholder="Monto total" value={(contractCRUD.editForm.totalAmount ?? contractCRUD.editingEvent.totalAmount ?? '') as any} onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, totalAmount: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="number" placeholder="Deslocamiento" value={(contractCRUD.editForm.travelFee ?? contractCRUD.editingEvent.travelFee ?? '') as any} onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, travelFee: e.target.value})} className={`px-3 py-2 border rounded text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  <input type="text" placeholder="Método de pago" value={(contractCRUD.editForm.paymentMethod ?? contractCRUD.editingEvent.paymentMethod ?? '') as any} onChange={(e) => contractCRUD.setEditForm({...contractCRUD.editForm, paymentMethod: e.target.value})} className={`px-3 py-2 border rounded text-sm md:col-span-2 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
                 </div>
                 <div className="flex gap-2 mt-3 flex-col">
-                  <button onClick={() => setShowCouponModal(true)} className="flex-1 px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+                  <button onClick={() => contractCRUD.setShowCouponModal(true)} className="flex-1 px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors text-sm font-medium flex items-center justify-center gap-2">
                     <Percent size={16} />
-                    Aplicar Cupones ({appliedCoupons.length})
+                    Aplicar Cupones ({contractCRUD.appliedCoupons.length})
                   </button>
                   <div className="flex gap-2">
-                    <button onClick={saveEventChanges} className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm font-medium">Guardar</button>
-                    <button onClick={() => { setEditingEvent(null); setEditForm({}); setAppliedCoupons([]); }} className={`flex-1 px-4 py-2 border rounded text-sm font-medium transition-colors ${darkMode ? 'border-gray-600 text-gray-400 hover:bg-gray-800' : 'border-gray-300 text-gray-600 hover:bg-gray-100'}`}>Cancelar</button>
+                    <button onClick={contractCRUD.saveEventChanges} className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm font-medium">Guardar</button>
+                    <button onClick={() => { contractCRUD.setEditingEvent(null); contractCRUD.setEditForm({}); contractCRUD.setAppliedCoupons([]); }} className={`flex-1 px-4 py-2 border rounded text-sm font-medium transition-colors ${darkMode ? 'border-gray-600 text-gray-400 hover:bg-gray-800' : 'border-gray-300 text-gray-600 hover:bg-gray-100'}`}>Cancelar</button>
                   </div>
                 </div>
               </div>
@@ -2004,6 +1543,106 @@ const AdminCalendar: React.FC<AdminCalendarProps> = ({ darkMode = false }) => {
           </div>
         </div>
       )}
+
+      {/* Add Event Modal */}
+      <ContractFormModal
+        modalType="add-event"
+        isOpen={contractCRUD.showAddEventModal}
+        onClose={() => {
+          contractCRUD.setShowAddEventModal(false);
+          contractCRUD.setAddForm({
+            clientName: '',
+            clientEmail: '',
+            phone: '',
+            clientPhone: '',
+            clientCPF: '',
+            clientRG: '',
+            clientAddress: '',
+            eventType: '',
+            eventDate: '',
+            eventTime: '',
+            eventLocation: '',
+            packageId: '',
+            packageTitle: '',
+            travelFee: '',
+            totalAmount: '',
+            paymentMethod: 'pix',
+          });
+          contractCRUD.setAppliedCoupons([]);
+        }}
+        darkMode={darkMode}
+        packages={packages}
+        coupons={coupons}
+        appliedCoupons={contractCRUD.appliedCoupons}
+        setAppliedCoupons={contractCRUD.setAppliedCoupons}
+        formData={contractCRUD.addForm}
+        onFormDataChange={contractCRUD.setAddForm}
+        onSave={contractCRUD.saveNewEvent}
+      />
+
+      {/* Edit Event Modal */}
+      <ContractFormModal
+        modalType="edit-event"
+        isOpen={contractCRUD.editingEvent !== null && contractCRUD.editingEvent !== undefined}
+        onClose={() => {
+          contractCRUD.setEditingEvent(null);
+          contractCRUD.setEditForm({});
+          contractCRUD.setAppliedCoupons([]);
+        }}
+        darkMode={darkMode}
+        packages={packages}
+        coupons={coupons}
+        appliedCoupons={contractCRUD.appliedCoupons}
+        setAppliedCoupons={contractCRUD.setAppliedCoupons}
+        isEditMode={true}
+        editingEvent={contractCRUD.editingEvent || undefined}
+        formData={contractCRUD.editForm}
+        onFormDataChange={contractCRUD.setEditForm}
+        onSave={contractCRUD.saveEventChanges}
+      />
+
+      {/* Add Contact Modal */}
+      <ContractFormModal
+        modalType="add-contact"
+        isOpen={contractCRUD.showAddContactModal}
+        onClose={() => {
+          contractCRUD.setShowAddContactModal(false);
+          contractCRUD.setContactForm({
+            name: '',
+            email: '',
+            phone: '',
+            packageId: '',
+            notes: '',
+            eventDate: '',
+            eventTime: '',
+          });
+        }}
+        darkMode={darkMode}
+        packages={packages}
+        coupons={coupons}
+        appliedCoupons={contractCRUD.appliedCoupons}
+        setAppliedCoupons={contractCRUD.setAppliedCoupons}
+        editingContactId={contractCRUD.editingContactIds?.contactId}
+        contactSaving={contractCRUD.contactSaving}
+        contactForm={contractCRUD.contactForm}
+        onContactFormChange={contractCRUD.setContactForm}
+        onContactSave={contractCRUD.saveNewContact}
+      />
+
+      {/* Coupon Modal */}
+      <ContractFormModal
+        modalType="coupons"
+        isOpen={contractCRUD.showCouponModal}
+        onClose={() => contractCRUD.setShowCouponModal(false)}
+        darkMode={darkMode}
+        packages={packages}
+        coupons={coupons}
+        appliedCoupons={contractCRUD.appliedCoupons}
+        setAppliedCoupons={contractCRUD.setAppliedCoupons}
+        selectedEventTotalAmount={contractCRUD.editingEvent?.totalAmount || contractCRUD.addForm.totalAmount ? Number(contractCRUD.addForm.totalAmount) : selectedEvent?.totalAmount || 0}
+        calculateTotalWithDiscount={() => contractCRUD.editingEvent ? calculateTotalWithDiscount() : contractCRUD.computeTotalFromBase(Number(contractCRUD.addForm.totalAmount || 0))}
+        computeTotalFromBase={contractCRUD.computeTotalFromBase}
+      />
     </div>
   );
 };
